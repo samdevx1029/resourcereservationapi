@@ -20,8 +20,13 @@ namespace ResourceReservationApi
     {
         public void Configuration (IAppBuilder appBuilder)
         {
+
             // In OWIN you create your own HttpConfiguration rather than re-using the GlobalConfiguration.
             var config = new HttpConfiguration();
+
+            // Enable CORS
+            // Look up "Enable CORS on Owin Web API" to see what NuGet to install
+            //config.EnableCors(new EnableCorsAttribute("*","*","*"))
 
             // ROUTING
             config.MapHttpAttributeRoutes();
@@ -29,11 +34,20 @@ namespace ResourceReservationApi
                 new { controller = "Value", id = RouteParameter.Optional }
                 );
 
+            // HOOK UP SWASHBUCKLE SWAGGER HERE (alternative is NSwag)
+            // Read documenation specific to Owin i.e. Only Swashbuckle.Core package is needed
+
             // AUTOFAC
             var containerBuilder = new ContainerBuilder();
 
+            // Register Http Request message - what is this?
+            containerBuilder.RegisterHttpRequestMessage(config);
+
             // Register controllers all at once using assembly scanning...
             containerBuilder.RegisterApiControllers(Assembly.GetExecutingAssembly());
+
+            // Register Assembly modules - what is this?
+            containerBuilder.RegisterAssemblyModules(Assembly.GetExecutingAssembly());
 
             // OPTIONAL - Register the filter provider if you have custom filters that need DI.
             // Also hook the filters up to controllers.
@@ -42,8 +56,12 @@ namespace ResourceReservationApi
             //    .AsWebApiActionFilterFor<TestController>()
             //    .InstancePerRequest();
 
-
+            // Register my version of ILogger that wraps Serilog, its ILogger and sinks
             containerBuilder.Register(c => Logger.Instance).As<ILogger>().SingleInstance();
+
+            // Entity Framework
+            // how to register this? Use Repository pattern and/or Unit of Work pattern?
+            // As in Serilog case, should EF be wrapped within Repository?
 
             // Autofac will add middleware to IAppBuilder in the order registered.
             // The middleware will execute in the order added to IAppBuilder.
@@ -71,7 +89,10 @@ namespace ResourceReservationApi
             // app.UseMiddlewareFromContainer<SecondMiddleware>();
 
             // Make sure the Autofac lifetime scope is passed to Web API.
+            // Sam: is this line necessary?
             appBuilder.UseAutofacWebApi(config);
+
+
             appBuilder.UseWebApi(config);
         }
     }
